@@ -1,11 +1,59 @@
 "use client";
 
-import React from "react";
-import { Activity, Calendar } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Activity, Calendar, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { ref, onValue, update } from "firebase/database";
+import { db } from "@/lib/firebase/config";
+import { SkeletonRow } from "@/components/Skeleton";
+
+interface TrainingSession {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  description: string;
+  assignedPlayers?: string[];
+  attendance?: any;
+}
 
 export default function PlayerDashboard() {
   const { user } = useAuth();
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const sessionsRef = ref(db, 'training_sessions');
+    const unsubscribe = onValue(sessionsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const parsed = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        const playerSessions = parsed.filter(session => 
+          session.assignedPlayers && session.assignedPlayers.includes(user.uid)
+        );
+        playerSessions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setSessions(playerSessions);
+      } else {
+        setSessions([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleRSVP = async (sessionId: string, status: 'attending' | 'declined') => {
+    if (!user) return;
+    await update(ref(db, `training_sessions/${sessionId}/attendance/${user.uid}`), {
+      status,
+      timestamp: new Date().toISOString()
+    });
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -24,24 +72,51 @@ export default function PlayerDashboard() {
           </div>
           
           <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-background border border-border flex justify-between items-center">
-              <div>
-                <p className="text-sm font-bold text-white">Tactical Drill</p>
-                <p className="text-xs text-gray-400">Tomorrow at 10:00 AM</p>
-              </div>
-              <span className="text-xs font-semibold px-2 py-1 bg-primary/20 text-primary rounded-full">
-                Attending
-              </span>
-            </div>
-            <div className="p-4 rounded-lg bg-background border border-border flex justify-between items-center">
-              <div>
-                <p className="text-sm font-bold text-white">Conditioning</p>
-                <p className="text-xs text-gray-400">Friday at 4:00 PM</p>
-              </div>
-              <button className="text-xs font-semibold px-3 py-1.5 bg-surface-hover text-white border border-border rounded-full hover:border-primary transition-colors">
-                RSVP
-              </button>
-            </div>
+            {loading ? (
+              <SkeletonRow count={3} className="h-20 w-full mb-3" />
+            ) : sessions.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">No upcoming sessions assigned to you.</p>
+            ) : (
+              sessions.map(session => {
+                const status = session.attendance?.[user!.uid]?.status;
+                
+                return (
+                  <div key={session.id} className="p-4 rounded-lg bg-background border border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-white">{session.title}</p>
+                      <p className="text-xs text-gray-400">{new Date(session.date).toLocaleString()} • {session.location}</p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      {status === 'attending' ? (
+                        <span className="flex items-center text-xs font-semibold px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full">
+                          <CheckCircle className="w-4 h-4 mr-1" /> Attending
+                        </span>
+                      ) : status === 'declined' ? (
+                        <span className="flex items-center text-xs font-semibold px-3 py-1.5 bg-red-500/20 text-red-400 rounded-full">
+                          <XCircle className="w-4 h-4 mr-1" /> Declined
+                        </span>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleRSVP(session.id, 'attending')}
+                            className="text-xs font-semibold px-3 py-1.5 bg-primary/10 text-primary border border-primary/50 rounded-full hover:bg-primary hover:text-black transition-colors"
+                          >
+                            Accept
+                          </button>
+                          <button 
+                            onClick={() => handleRSVP(session.id, 'declined')}
+                            className="text-xs font-semibold px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/50 rounded-full hover:bg-red-500 hover:text-white transition-colors"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { 
   LayoutDashboard, 
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
+import { NotificationBell } from "./NotificationBell";
 
 const adminLinks = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -36,6 +37,7 @@ const playerLinks = [
 export default function Sidebar() {
   const { role } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   let links = playerLinks;
   if (role === "admin") links = adminLinks;
@@ -44,6 +46,7 @@ export default function Sidebar() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      router.push("/login");
     } catch (error) {
       console.error("Error signing out", error);
     }
@@ -51,9 +54,12 @@ export default function Sidebar() {
 
   return (
     <div className="flex flex-col w-64 h-screen bg-surface border-r border-border text-foreground">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight text-primary uppercase">GolLab</h1>
-        <p className="text-sm text-gray-400 mt-1">Academy Management</p>
+      <div className="p-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-primary uppercase">GolLab</h1>
+          <p className="text-sm text-gray-400 mt-1">Academy Management</p>
+        </div>
+        <NotificationBell />
       </div>
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
