@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: #39FF14; /* Electric Green */
+  --color-primary-hover: #32e011;
+  --color-surface: #111111; /* Dark Gray for cards/panels */
+  --color-surface-hover: #1a1a1a;
+  --color-border: #333333;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
