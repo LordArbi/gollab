@@ -29,8 +29,8 @@ const coachLinks = [
 ];
 
 const playerLinks = [
-  { name: "Profile", href: "/player", icon: Users },
-  { name: "Sessions", href: "/player/sessions", icon: Calendar },
+  { name: "Dashboard", href: "/player", icon: LayoutDashboard },
+  { name: "My Sessions", href: "/player/sessions", icon: Calendar },
   { name: "Stats", href: "/player/stats", icon: Activity },
 ];
 
